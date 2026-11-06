@@ -1,0 +1,18 @@
+fire_station_rag/.venv/
+fire_station_rag/data/embedding_model/
+__pycache__/
+.env
+.env.local
+fire_station_rag/data/chat_api_key
+fire_station_rag/.test-deps/
+fire_station_rag/data/*.sqlite3*
+fire_station_rag/data/catalog_vectors.json
+fire_station_rag/data/catalog_vectors.sha256
+# Private datasets, local databases, generated catalogs and model caches
+*.geojson
+inspection/
+fire_station_rag/data/
+fire_station_rag/tmp*/
+fire_station_rag/.venv/
+.venv/
+*.log

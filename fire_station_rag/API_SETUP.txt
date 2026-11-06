@@ -1,0 +1,33 @@
+GEOJSON CHAT API v0.3
+
+Read DEPLOYMENT.md for current setup, configuration, supported queries,
+persistent API credentials and direct EC2 setup instructions.
+
+The API loads fire_station_rag/.env automatically. Copy .env.example once.
+If CHAT_API_KEY is empty, startup creates data/chat_api_key and reuses it.
+The calling backend configures this shared credential once; end users do not
+create keys. Keep this key out of public frontend code.
+
+NVIDIA_API_KEY is a separate provider-issued secret, configured once by the
+operator. Keep provider credentials only in the private .env file or deployment environment.
+
+From fire_station_rag:
+  python -m pip install -r requirements.txt
+  python -m uvicorn api:app --host 127.0.0.1 --port 8000 --workers 1
+
+Routes:
+  GET /health - process liveness
+  GET /ready - runtime and database readiness
+  GET /layers - layer names, counts and fields (X-API-Key)
+  POST /sessions - create session (X-API-Key)
+  POST /sessions/{id}/chat - JSON {"message":"your question"} (X-API-Key)
+  DELETE /sessions/{id} - remove history (X-API-Key)
+
+SQLite remains the default. DATABASE_URL enables PostgreSQL features and
+PostGIS spatial queries; catalog embeddings stay local. GEO_SOURCE_SRID=4326 confirms the source coordinate
+interpretation for PostGIS import. Spatial plans support nearest and radius
+search, using explicit coordinates or an exact Name in a reference layer.
+
+One API process only: session history and locks are local. Public
+release still needs HTTPS, authenticated backend integration, user ownership,
+rate limits, backups and load testing. See DEPLOYMENT.md for limitations.
