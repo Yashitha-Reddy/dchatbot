@@ -59,6 +59,39 @@ def records(layer):
     return [(i, json.dumps(props)) for i, props in rows]
 
 
+def count_records(info, field=None, name=None, area_type=None, minimum=None, maximum=None):
+    """Count on the server without materializing or sorting feature properties.
+
+    Called only after layer/field/filter validation by geo_data.query.
+    Missing-measurement counts describe the name/area scope before numeric bounds.
+    """
+    clauses, params = ["layer=%s"], [info["source"]]
+    for key, value in (("Name", name), ("Area_Type", area_type)):
+        if value:
+            clauses.append("lower(properties->>%s)=lower(%s)")
+            params.extend([key, value])
+    if field:
+        measurement = "CASE WHEN jsonb_typeof(properties->%s)='number' THEN (properties->>%s)::numeric ELSE NULL END"
+        params = [field, field, *params]
+    else:
+        measurement = "NULL::numeric"
+    bounds, bound_params = [], []
+    if minimum is not None:
+        bounds.append("measurement >= %s")
+        bound_params.append(minimum)
+    if maximum is not None:
+        bounds.append("measurement <= %s")
+        bound_params.append(maximum)
+    counted = "count(*) FILTER (WHERE " + " AND ".join(bounds) + ")" if bounds else "count(*)"
+    missing = "count(*) FILTER (WHERE measurement IS NULL)" if field else "0"
+    sql = ("WITH scoped AS (SELECT " + measurement + " AS measurement FROM geo_features WHERE "
+           + " AND ".join(clauses) + ") SELECT " + counted + "," + missing + " FROM scoped")
+    with connect() as conn:
+        count, absent = conn.execute(sql, [*params, *bound_params]).fetchone()
+    return {"source": info["source"], "layer": info["name"], "value": count,
+            "matched_count": count, "missing_measurements": absent, "units": "unverified"}
+
+
 def feature_locations(catalog, layer, name=None, area_type=None, limit=10):
     """Return an on-geometry representative point; do not invent street addresses."""
     from geo_data import resolve_layer

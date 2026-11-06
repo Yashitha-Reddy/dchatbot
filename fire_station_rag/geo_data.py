@@ -148,6 +148,10 @@ def query(catalog, layer, operation, field=None, name=None, area_type=None,
     if area_type and "Area_Type" not in info["fields"]:
         raise ValueError("This layer has no Area_Type field; cannot apply that filter")
     if os.getenv("DATABASE_URL"):
+        if operation == "count":
+            from postgres_store import count_records
+            return count_records(info, field=field, name=name, area_type=area_type,
+                                 minimum=minimum, maximum=maximum)
         from postgres_store import records
         raw = records(info["source"])
     else:
